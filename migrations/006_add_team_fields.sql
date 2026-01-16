@@ -1,0 +1,9 @@
+-- Add missing columns to team table
+ALTER TABLE team ADD COLUMN bio TEXT AFTER position;
+ALTER TABLE team ADD COLUMN email VARCHAR(255) AFTER bio;
+ALTER TABLE team ADD COLUMN phone VARCHAR(50) AFTER email;
+ALTER TABLE team ADD COLUMN linkedin VARCHAR(255) AFTER phone;
+ALTER TABLE team ADD COLUMN sort_order INT DEFAULT 0 AFTER image;
+ALTER TABLE team ADD COLUMN metaTitle VARCHAR(255);
+ALTER TABLE team ADD COLUMN metaDescription TEXT;
+ALTER TABLE team ADD COLUMN metaKeywords VARCHAR(255);
