@@ -24,7 +24,9 @@ const DOC_IDS = {
     OTHERS: '1WkE7uwImh_Uv04JCX5US3ORPKNXIxuU6uINirRD4cuc',
     CAREERS: '1tET4e4E9s00o0CuBoTrjJv4wy6Wd8PYBiwTkWrXGREU',
     HOME: '1Hcd0d8LP8ECRDeyelrzgbX2fA26zwZcv2B_iyThwWWY',
-    NINE_D_CHAIR: '1urTa4_5_G0n707dLp2UWdiAzPz2DS9sCUcF-j4He-Nw'
+    NINE_D_CHAIR: '1urTa4_5_G0n707dLp2UWdiAzPz2DS9sCUcF-j4He-Nw',
+    FIVE_D_CHAIR: '1W4lWXA-237DHXXJRLA98yvx4_YrORMkHovSO6zRIkGY',
+    SEVEN_D_CHAIR: '1sgsJb0IE15eJ9ValqvC43Bc3sN_f7LKkkETL_e8W1q4'
 };
 
 const fetchDocText = async (docId) => {
@@ -487,27 +489,183 @@ const parsers = {
         const data = { hero: {}, hardwareTrio: { items: [] }, corePillars: { items: [] }, audience: { items: [] }, stats: { items: [] } };
         let currentSection = '';
         for (const line of lines) {
-            if (line.includes('--- HERO ---')) currentSection = 'hero';
-            else if (line.includes('--- HARDWARE ---')) currentSection = 'hardware';
-            else if (line.includes('--- PILLARS ---')) currentSection = 'pillars';
-            else if (line.includes('--- AUDIENCE ---')) currentSection = 'audience';
-            else if (line.includes('--- STATS ---')) currentSection = 'stats';
-            else if (line.includes(':')) {
-                const [key, ...valParts] = line.split(':'); const k = key.trim().toLowerCase(); const v = valParts.join(':').trim();
+            // Use regex to match sections, handling -, –, — and case
+            if (/[-—–]+\s*HERO\s*[-—–]+/i.test(line)) currentSection = 'hero';
+            else if (/[-—–]+\s*HARDWARE\s*[-—–]+/i.test(line)) currentSection = 'hardware';
+            else if (/[-—–]+\s*PILLARS\s*[-—–]+/i.test(line)) currentSection = 'pillars';
+            else if (/[-—–]+\s*AUDIENCE\s*[-—–]+/i.test(line)) currentSection = 'audience';
+            else if (/[-—–]+\s*STATS\s*[-—–]+/i.test(line)) currentSection = 'stats';
+            else if (line.includes(':') || line.includes('：')) {
+                let splitIndex = line.indexOf(':');
+                if (splitIndex === -1) splitIndex = line.indexOf('：');
+                if (splitIndex === -1) continue;
+                const key = line.substring(0, splitIndex).trim().toLowerCase();
+                const val = line.substring(splitIndex + 1).trim();
+
                 if (currentSection === 'hero') {
-                    if (k === 'badge') data.hero.badge = v; if (k === 'titleline1') data.hero.titleLine1 = v; if (k === 'titlehighlight') data.hero.titleHighlight = v; if (k === 'description') data.hero.description = v; if (k === 'primarybtn') data.hero.primaryBtn = v; if (k === 'secondarybtn') data.hero.secondaryBtn = v;
+                    if (key === 'badge') data.hero.badge = val;
+                    if (key === 'titleline1') data.hero.titleLine1 = val;
+                    if (key === 'titlehighlight') data.hero.titleHighlight = val;
+                    if (key === 'description') data.hero.description = val;
+                    if (key === 'primarybtn') data.hero.primaryBtn = val;
+                    if (key === 'secondarybtn') data.hero.secondaryBtn = val;
                 } else if (currentSection === 'hardware') {
-                    if (k === 'title') data.hardwareTrio.title = v;
-                    if (k.startsWith('item')) { const parts = v.split('|'); if (parts.length >= 3) data.hardwareTrio.items.push({ number: parts[0].trim(), title: parts[1].trim(), desc: parts[2].trim() }); }
+                    if (key === 'title') data.hardwareTrio.title = val;
+                    if (key === 'item') { const parts = val.split('|'); if (parts.length >= 3) data.hardwareTrio.items.push({ number: parts[0].trim(), title: parts[1].trim(), desc: parts[2].trim() }); }
                 } else if (currentSection === 'pillars') {
-                    if (k === 'label') data.corePillars.label = v; if (k === 'title') data.corePillars.title = v;
-                    if (k.startsWith('pillar')) { const parts = v.split('|'); if (parts.length >= 2) data.corePillars.items.push({ title: parts[0].trim(), desc: parts[1].trim() }); }
+                    if (key === 'label') data.corePillars.label = val;
+                    if (key === 'title') data.corePillars.title = val;
+                    if (key === 'pillar') { const parts = val.split('|'); if (parts.length >= 2) data.corePillars.items.push({ title: parts[0].trim(), desc: parts[1].trim() }); }
                 } else if (currentSection === 'audience') {
-                    if (k === 'title') data.audience.title = v;
-                    if (k.startsWith('segment')) { const parts = v.split('|'); if (parts.length >= 2) data.audience.items.push({ title: parts[0].trim(), text: parts[1].trim() }); }
+                    if (key === 'title') data.audience.title = val;
+                    if (key === 'segment') { const parts = val.split('|'); if (parts.length >= 2) data.audience.items.push({ title: parts[0].trim(), text: parts[1].trim() }); }
                 } else if (currentSection === 'stats') {
-                    if (k === 'title') data.stats.title = v; if (k === 'description') data.stats.description = v;
-                    if (k.startsWith('stat')) { const parts = v.split('|'); if (parts.length >= 2) data.stats.items.push({ value: parts[0].trim(), label: parts[1].trim() }); }
+                    if (key === 'title') data.stats.title = val;
+                    if (key === 'description') data.stats.description = val;
+                    if (key === 'stat') { const parts = val.split('|'); if (parts.length >= 2) data.stats.items.push({ value: parts[0].trim(), label: parts[1].trim() }); }
+                }
+            }
+        }
+        return Object.keys(data.hero).length > 0 ? data : null;
+    },
+    fiveDChair: (lines) => {
+        const data = { hero: {}, features: { items: [] }, stats: { items: [] }, news: { items: [] }, whyChoose: { items: [] }, compare: { fiveD: { features: [] }, sevenD: { features: [] } } };
+        let currentSection = '';
+        for (const line of lines) {
+            // Use regex to match sections, handling -, –, — and case
+            if (/[-—–]+\s*HERO\s*[-—–]+/i.test(line)) currentSection = 'hero';
+            else if (/[-—–]+\s*FEATURES\s*[-—–]+/i.test(line)) currentSection = 'features';
+            else if (/[-—–]+\s*STATS\s*[-—–]+/i.test(line)) currentSection = 'stats';
+            else if (/[-—–]+\s*NEWS\s*[-—–]+/i.test(line)) currentSection = 'news';
+            else if (/[-—–]+\s*WHY\s+CHOOSE\s*[-—–]+/i.test(line)) currentSection = 'whyChoose';
+            else if (/[-—–]+\s*COMPARE\s+5D\s*[-—–]+/i.test(line)) currentSection = 'compare5d';
+            else if (/[-—–]+\s*COMPARE\s+7D\s*[-—–]+/i.test(line)) currentSection = 'compare7d';
+            else if (line.includes(':') || line.includes('：')) {
+                let splitIndex = line.indexOf(':');
+                if (splitIndex === -1) splitIndex = line.indexOf('：');
+                if (splitIndex === -1) continue;
+                const key = line.substring(0, splitIndex).trim().toLowerCase();
+                const val = line.substring(splitIndex + 1).trim();
+
+                if (currentSection === 'hero') {
+                    if (key === 'badge') data.hero.badge = val;
+                    if (key === 'titleline1') data.hero.titleLine1 = val;
+                    if (key === 'titlehighlight1') data.hero.titleHighlight1 = val;
+                    if (key === 'titleline2') data.hero.titleLine2 = val;
+                    if (key === 'titlehighlight2') data.hero.titleHighlight2 = val;
+                    if (key === 'titleline3') data.hero.titleLine3 = val;
+                    if (key === 'description') data.hero.description = val;
+                    if (key === 'btnbook') data.hero.btnBook = val;
+                    if (key === 'btnguidelines') data.hero.btnGuidelines = val;
+                    if (key === 'btnanubhav') data.hero.btnAnubhav = val;
+                } else if (currentSection === 'features') {
+                    if (key === 'title') data.features.title = val;
+                    if (key === 'item') { const parts = val.split('|'); if (parts.length >= 2) data.features.items.push({ title: parts[0].trim(), description: parts[1].trim() }); }
+                } else if (currentSection === 'stats') {
+                    if (key === 'title') data.stats.title = val;
+                    if (key === 'description') data.stats.description = val;
+                    if (key === 'stat') { const parts = val.split('|'); if (parts.length >= 2) data.stats.items.push({ value: parts[0].trim(), label: parts[1].trim(), sub: parts[2] ? parts[2].trim() : '' }); }
+                } else if (currentSection === 'news') {
+                    if (key === 'title') data.news.title = val;
+                    if (key === 'article') { const parts = val.split('|'); if (parts.length >= 4) data.news.items.push({ publication: parts[0].trim(), date: parts[1].trim(), title: parts[2].trim(), description: parts[3].trim(), link: parts[4] ? parts[4].trim() : '#' }); }
+                } else if (currentSection === 'whyChoose') {
+                    if (key === 'title') data.whyChoose.title = val;
+                    if (key === 'description') data.whyChoose.description = val;
+                    if (key === 'item') { const parts = val.split('|'); if (parts.length >= 2) data.whyChoose.items.push({ title: parts[0].trim(), desc: parts[1].trim() }); }
+                } else if (currentSection === 'compare5d') {
+                    if (key === 'title') data.compare.fiveD.title = val;
+                    if (key === 'feature') { const parts = val.split('|'); if (parts.length >= 2) data.compare.fiveD.features.push({ label: parts[0].trim(), value: parts[1].trim() }); }
+                } else if (currentSection === 'compare7d') {
+                    if (key === 'title') data.compare.sevenD.title = val;
+                    if (key === 'immersivelabel') data.compare.sevenD.immersiveLabel = val;
+                    if (key === 'immersivevalue') data.compare.sevenD.immersiveValue = val;
+                    if (key === 'feature') { const parts = val.split('|'); if (parts.length >= 2) data.compare.sevenD.features.push({ label: parts[0].trim(), value: parts[1].trim() }); }
+                }
+            }
+        }
+        return Object.keys(data.hero).length > 0 ? data : null;
+    },
+    sevenDChair: (lines) => {
+        const data = {
+            hero: {},
+            features: {
+                title: "Core Offerings & Features",
+                description: "Discover the future of immersive education with cutting-edge VR technology",
+                items: [
+                    {
+                        title: "7D Labs Experiment",
+                        description: "Experience curriculum-based 7D lab experiments with Melzo Anubhav's virtual reality-powered labs like never before. Students can safely conduct physics experiments, chemical reactions, biological dissections, and engineering simulations in an immersive environment. Designed for schools, universities, and training centers, these lifelike 7D simulations bring science to life. From exploring Newton's Laws to dissecting virtual organisms, every experience is hands-on and engaging. With motion effects, real-time interaction, and stunning visuals, Melzo Anubhav overcomes the limitations of traditional labs.",
+                        image: "/images/7d_chair/Person using VR headset.webp",
+                        size: "large"
+                    },
+                    {
+                        title: "VR Built-In",
+                        description: "Melzo Anubhav brings education to life through immersive Virtual Reality, allowing users to explore high-quality 3D simulations, lifelike virtual labs, and interactive content with unmatched clarity and depth. Students, educators, and professionals can experience hands-on training, conduct virtual experiments, and engage in immersive storytelling—making complex concepts easier to grasp. With support for advanced VR headsets such as Meta Quest 2 and Meta Quest 3s, the experience is smooth, intuitive, and engaging. Melzo Anubhav redefines education by extending learning beyond books and screens into a truly experiential and impactful journey.",
+                        image: "/images/7d_chair/VR headset and controllers.webp",
+                        size: "large"
+                    },
+                    {
+                        title: "Virtual Tours",
+                        description: "Step into history and exploration like never before with Melzo Anubhav's interactive virtual tours. Experience the Apollo 11 Moon Landing, dive into an underwater adventure, witness African wildlife, and explore the beauty of Italy—all from your seat. Powered by 7D virtual reality and immersive effects, Melzo Anubhav lets you feel the atmosphere of historical events and walk through global landmarks as if you were truly there. Perfect for students, educators, and history enthusiasts, these realistic simulations make learning engaging and unforgettable. Melzo Anubhav turns history into an experience because the best way to learn it is to live it.",
+                        image: "/images/7d_chair/Virtual wildlife encounter with tiger.webp",
+                        size: "large"
+                    },
+                    {
+                        title: "Immersive Ease",
+                        description: "Melzo Anubhav is thoughtfully designed to deliver both immersive education and superior comfort. The chair features premium cushioning made with high-quality, leather-like materials that offer a soft, supportive, and durable seating experience. This carefully chosen upholstery provides a smooth finish and luxurious feel, ensuring users remain comfortable during extended interactive sessions. Its easy-to-clean and wear-resistant surface makes it ideal for continuous use in educational environments such as schools, labs, and training centers.",
+                        image: "/images/7d_chair/Close-up of premium chair upholstery.webp",
+                        size: "large"
+                    }
+                ]
+            },
+            stats: { items: [] }, news: { items: [] }, whyChoose: { items: [] }, compare: { fiveD: { features: [] }, sevenD: { features: [] } }
+        };
+        let currentSection = '';
+        for (const line of lines) {
+            // Use regex to match sections, handling -, –, — and case
+            if (/[-—–]+\s*HERO\s*[-—–]+/i.test(line)) currentSection = 'hero';
+            else if (/[-—–]+\s*STATS\s*[-—–]+/i.test(line)) currentSection = 'stats';
+            else if (/[-—–]+\s*NEWS\s*[-—–]+/i.test(line)) currentSection = 'news';
+            else if (/[-—–]+\s*WHY\s+CHOOSE\s*[-—–]+/i.test(line)) currentSection = 'whyChoose';
+            else if (/[-—–]+\s*COMPARE\s+5D\s*[-—–]+/i.test(line)) currentSection = 'compare5d';
+            else if (/[-—–]+\s*COMPARE\s+7D\s*[-—–]+/i.test(line)) currentSection = 'compare7d';
+            else if (line.includes(':') || line.includes('：')) {
+                let splitIndex = line.indexOf(':');
+                if (splitIndex === -1) splitIndex = line.indexOf('：');
+                if (splitIndex === -1) continue;
+                const key = line.substring(0, splitIndex).trim().toLowerCase();
+                const val = line.substring(splitIndex + 1).trim();
+
+                if (currentSection === 'hero') {
+                    if (key === 'badge') data.hero.badge = val;
+                    if (key === 'titleline1') data.hero.titleLine1 = val;
+                    if (key === 'titlehighlight1') data.hero.titleHighlight1 = val;
+                    if (key === 'titleline2') data.hero.titleLine2 = val;
+                    if (key === 'titlehighlight2') data.hero.titleHighlight2 = val;
+                    if (key === 'titleline3') data.hero.titleLine3 = val;
+                    if (key === 'description') data.hero.description = val;
+                    if (key === 'btnbook') data.hero.btnBook = val;
+                    if (key === 'btnguidelines') data.hero.btnGuidelines = val;
+                    if (key === 'btnfived') data.hero.btnFiveD = val;
+                } else if (currentSection === 'stats') {
+                    if (key === 'title') data.stats.title = val;
+                    if (key === 'description') data.stats.description = val;
+                    if (key === 'stat') { const parts = val.split('|'); if (parts.length >= 2) data.stats.items.push({ value: parts[0].trim(), label: parts[1].trim(), sub: parts[2] ? parts[2].trim() : '' }); }
+                } else if (currentSection === 'news') {
+                    if (key === 'title') data.news.title = val;
+                    if (key === 'article') { const parts = val.split('|'); if (parts.length >= 4) data.news.items.push({ publication: parts[0].trim(), date: parts[1].trim(), title: parts[2].trim(), description: parts[3].trim(), link: parts[4] ? parts[4].trim() : '#' }); }
+                } else if (currentSection === 'whyChoose') {
+                    if (key === 'title') data.whyChoose.title = val;
+                    if (key === 'description') data.whyChoose.description = val;
+                    if (key === 'item') { const parts = val.split('|'); if (parts.length >= 2) data.whyChoose.items.push({ title: parts[0].trim(), desc: parts[1].trim() }); }
+                } else if (currentSection === 'compare5d') {
+                    if (key === 'title') data.compare.fiveD.title = val;
+                    if (key === 'feature') { const parts = val.split('|'); if (parts.length >= 2) data.compare.fiveD.features.push({ label: parts[0].trim(), value: parts[1].trim() }); }
+                } else if (currentSection === 'compare7d') {
+                    if (key === 'title') data.compare.sevenD.title = val;
+                    if (key === 'immersivelabel') data.compare.sevenD.immersiveLabel = val;
+                    if (key === 'immersivevalue') data.compare.sevenD.immersiveValue = val;
+                    if (key === 'feature') { const parts = val.split('|'); if (parts.length >= 2) data.compare.sevenD.features.push({ label: parts[0].trim(), value: parts[1].trim() }); }
                 }
             }
         }
@@ -536,7 +694,9 @@ const LOCAL_DEFAULTS = {
     'othersCustom_live': 'othersCustomContent.json',
     'careers_live': 'careersContent.json',
     'home_live': 'homeContent.json',
-    'nineDChair_live': 'nineDChairContent.json'
+    'nineDChair_live': 'nineDChairContent.json',
+    'fiveDChair_live': 'fiveDChairContent.json',
+    'sevenDChair_live': 'sevenDChairContent.json'
 };
 
 const hydrateFromLocal = async () => {
@@ -603,6 +763,8 @@ const syncAll = async () => {
     await syncItem(DOC_IDS.CAREERS, 'careers_live', parsers.careers);
     await syncItem(DOC_IDS.HOME, 'home_live', parsers.home);
     await syncItem(DOC_IDS.NINE_D_CHAIR, 'nineDChair_live', parsers.nineDChair);
+    await syncItem(DOC_IDS.FIVE_D_CHAIR, 'fiveDChair_live', parsers.fiveDChair);
+    await syncItem(DOC_IDS.SEVEN_D_CHAIR, 'sevenDChair_live', parsers.sevenDChair);
 
     console.log('[AutoSync] Synchronization cycle complete.');
 };

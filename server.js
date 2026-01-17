@@ -42,6 +42,9 @@ app.use('/api', require('./routes/jobRoutes'));
 app.use('/api/employee-testimonials', require('./routes/employeeTestimonialRoutes'));
 app.use('/api/global-momentum', require('./routes/globalMomentumRoutes'));
 app.use('/api/page-content', require('./routes/pageContentRoutes'));
+app.use('/api', require('./routes/privacyRoutes'));
+app.use('/api', require('./routes/industryRoutes'));
+app.use('/api', require('./routes/careersGalleryRoutes'));
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date() });
