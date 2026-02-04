@@ -59,7 +59,7 @@ app.use((err, req, res, next) => {
 const { startAutoSync } = require('./services/googleDocSyncService');
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT} (http://192.168.29.253:${PORT})`);
     // Start Auto Sync (every 5 minutes)
     startAutoSync(5);
 });

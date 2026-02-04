@@ -176,6 +176,15 @@ const connectDB = async () => {
                 console.log("Migrated faqs: Added missing SEO columns");
             }
 
+            // 7. Migrate industries table for missing fields (sort_order)
+            const [indColumns] = await connection.query("SHOW COLUMNS FROM industries");
+            const indFields = indColumns.map(c => c.Field);
+
+            if (!indFields.some(f => f.toLowerCase() === 'sort_order')) {
+                await connection.query("ALTER TABLE industries ADD COLUMN sort_order INT DEFAULT 0");
+                console.log("Migrated industries: Added missing column 'sort_order'");
+            }
+
         } catch (migrationErr) {
             console.error('Schema migration warning:', migrationErr.message);
         }
